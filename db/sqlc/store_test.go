@@ -12,27 +12,30 @@ func TestTransferTx(t *testing.T) {
 
 	account1 := createRandomAccount(t)
 	account2 := createRandomAccount(t)
+	// fmt.Println("before >>", account1.Balance, account2.Balance)
 
-	// run n concurrent transfer transaction
-	n := 5
+	round := 5
 	amount := int64(10)
 
 	errs := make(chan error)
 	results := make(chan TransferTxResult)
-	for i := 0; i < n; i++ {
+	for i := 0; i < round; i++ {
 		go func() {
+
 			result, err := store.TransferTx(context.Background(), TransferTxParams{
 				FromAccountID: account1.ID,
 				ToAccountID:   account2.ID,
 				Amount:        amount,
 			})
+
 			errs <- err
 			results <- result
 		}()
 	}
 
 	// check results
-	for i := 0; i < n; i++ {
+	existed := make(map[int]bool)
+	for i := 0; i < round; i++ {
 		err := <-errs
 		require.NoError(t, err)
 
@@ -71,10 +74,36 @@ func TestTransferTx(t *testing.T) {
 		_, err = store.GetEntry(context.Background(), toEntry.ID)
 		require.NoError(t, err)
 
-		// fmt.Println("----------------------")
-		// fmt.Println("From entry:", fromEntry)
-		// fmt.Println("To entry:", toEntry)
+		// check accounts
+		fromAccount := result.FromAccount
+		require.NotEmpty(t, fromAccount)
+		require.Equal(t, account1.ID, fromAccount.ID)
 
-		// TODO: check account's balance
+		toAccount := result.ToAccount
+		require.NotEmpty(t, toAccount)
+
+		require.Equal(t, account2.ID, toAccount.ID)
+
+		// fmt.Println(">> tx:", fromAccount.Balance, toAccount.Balance)
+		diff1 := account1.Balance - fromAccount.Balance // -10 - -10
+		diff2 := toAccount.Balance - account2.Balance   // 10 - 10
+		require.Equal(t, diff1, diff2)
+		require.True(t, diff1 > 0)
+		require.True(t, diff1%amount == 0)
+
+		k := int(diff1 / amount)
+		require.True(t, k >= 1 && k <= round)
+		require.NotContains(t, existed, k)
+		existed[k] = true
 	}
+
+	updatedAccount1, err := testQueries.GetAccount(context.Background(), account1.ID)
+	require.NoError(t, err)
+
+	updatedAccount2, err := testQueries.GetAccount(context.Background(), account2.ID)
+	require.NoError(t, err)
+	// fmt.Println("before >>", updatedAccount1, updatedAccount2)
+
+	require.Equal(t, account1.Balance-int64(round)*amount, updatedAccount1.Balance)
+	require.Equal(t, account2.Balance+int64(round)*amount, updatedAccount2.Balance)
 }
