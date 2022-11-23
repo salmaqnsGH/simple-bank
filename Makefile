@@ -28,4 +28,7 @@ sqlc:
 test:
 	go test -v -cover ./...
 
+server:
+	go run main.go
+
 .PHONY: postgrecmd postgres14 execpostgres14 createdb dropdb initschema migrateup migratedown sqlc test
