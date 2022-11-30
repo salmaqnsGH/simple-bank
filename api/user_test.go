@@ -16,7 +16,7 @@ import (
 	"github.com/lib/pq"
 	mockdb "github.com/salmaqnsGH/simplebank/db/mock"
 	db "github.com/salmaqnsGH/simplebank/db/sqlc"
-	"github.com/salmaqnsGH/simplebank/db/util"
+	"github.com/salmaqnsGH/simplebank/util"
 	"github.com/stretchr/testify/require"
 )
 
