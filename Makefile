@@ -2,7 +2,7 @@ postgrecmd:
 	docker exec -it postgres14 bash
 
 postgres14:
-	docker run --name postgres14 -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:14-alpine
+	docker run --name postgres14 --network simplebank-network -p 5432:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:14-alpine
 
 execpostgres14:
 	docker exec -it postgres14 /bin/sh
@@ -36,6 +36,9 @@ test:
 
 server:
 	go run main.go
+
+createcontainer:
+	docker run --name simplebank --network simplebank-network -p 8080:8080 -e GIN_MODE=release -e DB_SOURCE="postgresql://root:secret@postgres14:5432/simple_bank?sslmode=disable" simplebank:latest
 
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/salmaqnsGH/simplebank/db/sqlc Store
